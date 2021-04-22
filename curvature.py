@@ -79,61 +79,45 @@ def my_discrete_mean_curvature_measure_cleaned(mesh):
     return np.array(mean_curv)
 
 def my_discrete_mean_curvature_measure(mesh):
-    #Area (should be easy)
+    """Calculate discrete mean curvature of mesh using one-ring neighborhood."""
 
+    # one-rings (immediate neighbors of) each vertex
     g = nx.from_edgelist(mesh.edges_unique)
-    one_rings = [list(g[i].keys()) for i in range(len(m.vertices))]
-    print(len(one_rings))
-    print(len(mesh.vertices))
-    #tangents = np.tan(m.face_angles_sparse.tocsr()) #vertices by faces
-    start = time.time()
-    face_angles = m.face_angles_sparse
+    one_rings = [list(g[i].keys()) for i in range(len(mesh.vertices))]
+   
+    # cotangents of angles and store in dictionary based on corresponding vertex and face
+    face_angles = mesh.face_angles_sparse
     cotangents = { f"{vertex},{face}":1/np.tan(angle) for vertex,face,angle in zip(face_angles.row, face_angles.col, face_angles.data)}
-    end = time.time()
 
-    #adjacency_unshared_sorted = 
-    print("b")
-    #[print((mesh.vertices[0]- mesh.vertices[1])*cotangents[key]) for key in cotangents]
+    # discrete Laplace-Beltrami contribution of the shared edge of adjacent faces:
+    #        /*\
+    #       / * \
+    #      /  *  \
+    #    vi___*___vj
+    #
+    # store results in dictionary with vertex ids as keys     
     fa = mesh.face_adjacency
     fae = mesh.face_adjacency_edges
     edge_measure = {f"{fae[i][0]},{fae[i][1]}":(mesh.vertices[fae[i][1]] - mesh.vertices[fae[i][0]])*(cotangents[f"{v[0]},{fa[i][0]}"]+cotangents[f"{v[1]},{fa[i][1]}"]) for i,v in enumerate(mesh.face_adjacency_unshared) }
-    
-    # for i,v in enumerate(mesh.face_adjacency_edges):
-    #     if v[0]==1518 or v[1]==1518 or v[0]==21390 or v[1]==21390:
-    #             print(f"fae {v}")
-
-
-    # for i,v in enumerate(mesh.edges_unique):
-    #     if v[0]==1518 or v[1]==1518 or v[0]==21390 or v[1]==21390:
-    #         print(f"eu {v}")
-
-    print("c")
-    #get all faces in vertices 
-    #face_adjacency_unshared Return the vertex index of the two vertices not in the shared edge between two adjacent faces
+  
+    # calculate mean curvature using one-ring
     mean_curv = [0]*len(mesh.vertices)
-    percentage = int(len(mesh.vertices)/10)
-
     for vertex_id,face_ids in enumerate(mesh.vertex_faces):
         face_ids = face_ids[face_ids!=-1] #faces associated with vertex_id
         one_ring = one_rings[vertex_id]
         delta_s = 0
+
         for one_ring_vertex_id in one_ring:
             if f"{vertex_id},{one_ring_vertex_id}" in edge_measure:
                 delta_s += edge_measure[f"{vertex_id},{one_ring_vertex_id}"]
             elif f"{one_ring_vertex_id},{vertex_id}"  in edge_measure:
                 delta_s -= edge_measure[f"{one_ring_vertex_id},{vertex_id}"]
-            #else :
-                #print("hey")
-
+        
         delta_s *= 1/(2*sum(mesh.area_faces[face_ids])/3) #use 1/3 of the areas
         mean_curv[vertex_id] = 0.5*np.linalg.norm(delta_s)
-        if vertex_id % percentage == 0:
-        	print(vertex_id/len(mesh.vertices))
-        #print(mean_curv[vertex_id])
-
-        #delta_s=sum([edge_measure[f"{vertex_id},{one_ring_vertex_id}"] if f"{vertex_id},{one_ring_vertex_id}" in edge_measure else if f"{one_ring_vertex_id},{vertex_id}" in edge_measure -1*edge_measure[f"{one_ring_vertex_id},{vertex_id}"] for one_ring_vertex_id in one_ring ])
-
+       
     return np.array(mean_curv)
+
 
 
 def my_discrete_gaussian_curvature_measure(mesh):
@@ -152,7 +136,7 @@ def my_discrete_gaussian_curvature_measure(mesh):
 
     g = nx.from_edgelist(mesh.edges_unique)
     #nearest = mesh.kdtree.query_ball_point(points, radius)
-    one_ring = [list(g[i].keys()) for i in range(len(m.vertices))]
+    one_ring = [list(g[i].keys()) for i in range(len(mesh.vertices))]
     #print(one_ring)
 
     #gauss_curv = [mesh.vertex_defects[vertices].sum() for vertices in one_ring]
@@ -196,13 +180,10 @@ ids_dictionary = {'410_roi1':[1,2],
 threshold = 0
 for roi,ids in ids_dictionary.items():
     for object_id in ids:
-        #if roi=="494_roi5":
-        #    object_id = 2
 
         m = trimesh.load(f'/groups/cosem/cosem/ackermand/paperResultsWithFullPaths/collected/jrc_ctl-id8_a01.n5/{roi}/meshRescaleLevel2Smoothing2/{object_id}.obj')#'multiresolutionMeshes/test/mito_obj_meshes_s2/345809856042.obj')'multiresolutionMeshes/test/mito_obj_meshes_s2/345809856042.obj')#'/groups/cosem/cosem/ackermand/paperResultsWithFullPaths/collected/jrc_ctl-id8_a01.n5/mesh/1.obj')#'multiresolutionMeshes/test/mito_obj_meshes_s2/345809856042.obj')
         m.remove_duplicate_faces()
         m.remove_unreferenced_vertices()
-        #trimesh.smoothing.filter_humphrey(m)
         print(m.is_watertight)
 
         c = my_discrete_gaussian_curvature_measure(m)
