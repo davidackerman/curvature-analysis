@@ -150,10 +150,6 @@ def my_discrete_gaussian_curvature_measure(mesh):
     gaussian_curvature: (n,) float, discrete gaussian curvature measure.
     """
 
-    #points = np.asanyarray(points, dtype=np.float64)
-    #if not util.is_shape(points, (-1, 3)):
-    #    raise ValueError('points must be (n,3)!')
-
     g = nx.from_edgelist(mesh.edges_unique)
     #nearest = mesh.kdtree.query_ball_point(points, radius)
     one_ring = [list(g[i].keys()) for i in range(len(m.vertices))]
@@ -232,7 +228,6 @@ for roi,ids in ids_dictionary.items():
         avg=np.clip(avg,np.percentile(avg,30), np.percentile(avg,90))
 
         write_mesh(m,avg,f"/groups/cosem/cosem/ackermand/meshesForAubrey/{roi}/lowres/{object_id}_meanCurvature_avg3.ply")
-        #if roi=="410_roi1":
         threshold = 0.5*(np.amax(avg)+np.amin(avg))
         m_split = split_mesh_in_two(m,avg,threshold)
         m_split[0].export(f"/groups/cosem/cosem/ackermand/meshesForAubrey/{roi}/lowres/{object_id}_meanCurvature_avg3_highCurvature.ply")
@@ -241,7 +236,4 @@ for roi,ids in ids_dictionary.items():
         avg=avg>threshold
         write_mesh(m,avg,f"/groups/cosem/cosem/ackermand/meshesForAubrey/{roi}/lowres/{object_id}_meanCurvature_avg3_thresholded.ply")
        
-        #avg = average_over_n_ring(m,c,2)
-        #avg=np.clip(avg,np.percentile(avg,30), np.percentile(avg,90))
-        #write_mesh(avg,f"/groups/cosem/cosem/ackermand/meshesForAubrey/{roi}/1_meanCurvature_avg3ring.obj")
         
